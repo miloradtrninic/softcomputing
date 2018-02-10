@@ -3,7 +3,7 @@ from scipy import ndimage
 import math
 import cv2
 import vector_fundza
-from convNN import crop,createModel
+from convNN import createModel
 import random
 import sys
 
@@ -225,7 +225,17 @@ def findElement(elements, element):
             indexes.append(i)
         i += 1
     return indexes
-
+def crop(number):
+    ret, thresh = cv2.threshold(number, 127, 255, cv2.THRESH_BINARY)
+    _, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    areas = [cv2.contourArea(c) for c in contours]
+    if len(areas) == 0:
+        return number
+    contourIndex = np.argmax(areas)
+    [x, y, w, h] = cv2.boundingRect(contours[contourIndex])
+    cropped = number[y:y + h + 1, x:x + w + 1]
+    cropped = cv2.resize(cropped, (28,28), interpolation=cv2.INTER_AREA)
+    return cropped
 def getBestShift(img):
     cy,cx = ndimage.measurements.center_of_mass(img)
 

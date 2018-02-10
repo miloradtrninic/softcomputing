@@ -7,25 +7,9 @@ import keras
 import time
 import json
 import cv2
+from soft import crop
 from keras.models import model_from_json
 
-
-def crop(number):
-    ret, thresh = cv2.threshold(number, 127, 255, cv2.THRESH_BINARY)
-    img2, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    contourArr = [cv2.contourArea(c) for c in contours]  # Trazimo najvecu konturu
-
-    if len(contourArr) == 0:
-        return number
-
-    contourIndex = np.argmax(contourArr)
-
-    [x, y, w, h] = cv2.boundingRect(contours[contourIndex])
-
-    cropped = number[y:y + h + 1, x:x + w + 1]
-    cropped = cv2.resize(cropped, number.shape, interpolation=cv2.INTER_AREA)
-    return cropped
 
 
 def createModel(input_shape, nClasses):
@@ -56,8 +40,6 @@ def createModel(input_shape, nClasses):
 
 if __name__ == '__main__':
     (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
-    #
-    # Find the unique numbers from the train labels
     classes = np.unique(train_labels)
     nClasses = len(classes)
 
@@ -83,41 +65,37 @@ if __name__ == '__main__':
         test_data = test_images.reshape(test_images.shape[0], nRows, nCols, 1)
         input_shape = (nRows, nCols, 1)
 
-    # Change to float datatype
     train_data = train_data.astype('float32')
     test_data = test_data.astype('float32')
 
-    # Scale the data to lie between 0 to 1
     train_data /= 255
-
     test_data /= 255
 
-    # Change the labels from integer to categorical data
     train_labels_one_hot = to_categorical(train_labels)
     test_labels_one_hot = to_categorical(test_labels)
 
     model1 = createModel(input_shape, nClasses)
-    # batch_size = 256
-    # epochs = 30
-    # model1.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
-    #
-    # model1.summary()
-    #
-    # history = model1.fit(train_data, train_labels_one_hot, batch_size=batch_size, epochs=epochs, verbose=1,
-    #                      validation_data=(test_data, test_labels_one_hot))
-    # loss, acc = model1.evaluate(test_data, test_labels_one_hot, verbose=0)
-    # model1.save_weights('cnnKerasWeights.h5')
-    # # model1.save('kerasCNN')
-    # print(acc)
+    batch_size = 256
+    epochs = 30
+    model1.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
-    cropped = crop(test_images[1000]).astype('float32')
-    cropped /= 255
-    # cv2.imshow("cropped", cropped)
-    # if cv2.waitKey(1) == 13:
-    #    exit(0)
-    model1.load_weights('cnnKerasWeights.h5')
-    cropped = np.expand_dims(cropped, axis=0)
-    cropped = np.expand_dims(cropped, axis=3)
-    number = model1.predict_classes(cropped)
+    model1.summary()
 
-    print(number)
+    history = model1.fit(train_data, train_labels_one_hot, batch_size=batch_size, epochs=epochs, verbose=1,
+                         validation_data=(test_data, test_labels_one_hot))
+    loss, acc = model1.evaluate(test_data, test_labels_one_hot, verbose=0)
+    model1.save_weights('cnnKerasWeights.h5')
+    # model1.save('kerasCNN')
+    print(acc)
+
+    # cropped = crop(test_images[1000]).astype('float32')
+    # cropped /= 255
+    # # cv2.imshow("cropped", cropped)
+    # # if cv2.waitKey(1) == 13:
+    # #    exit(0)
+    # model1.load_weights('cnnKerasWeights.h5')
+    # cropped = np.expand_dims(cropped, axis=0)
+    # cropped = np.expand_dims(cropped, axis=3)
+    # number = model1.predict_classes(cropped)
+    #
+    # print(number)
